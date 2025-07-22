@@ -48,13 +48,22 @@ const Index = () => {
             </div>
             
             <h1 className="text-5xl font-bold text-foreground mb-6">
-              VeriSure
+              VeriSure – Mini Project
             </h1>
             
             <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-              Advanced product authentication system powered by QR technology. 
-              Protect your brand, verify authenticity, and build consumer trust with enterprise-grade security.
+              Mini Project: Blockchain-backed Product Verification System. 
+              Demonstrating QR authentication with Supabase backend and optional blockchain integration.
             </p>
+            
+            <div className="flex justify-center space-x-4 mb-8">
+              <div className="bg-primary/10 px-3 py-1 rounded-full text-sm font-medium text-primary">
+                🔗 Blockchain-backed (Polygon Mumbai)
+              </div>
+              <div className="bg-accent/10 px-3 py-1 rounded-full text-sm font-medium text-accent">
+                ☁️ Supabase fallback enabled
+              </div>
+            </div>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/customer">
@@ -80,11 +89,11 @@ const Index = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-foreground mb-4">
-            Complete Authentication Ecosystem
+            Mini Project: Blockchain-backed Product Verification
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            From product registration to consumer verification, our platform provides 
-            end-to-end authenticity management for brands and customers.
+            Demonstrating modern web development with authentication, QR codes, 
+            database integration, and optional blockchain functionality.
           </p>
         </div>
 

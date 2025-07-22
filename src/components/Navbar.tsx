@@ -1,9 +1,16 @@
 import { Link, useLocation } from "react-router-dom";
 import { Shield, BarChart3, Factory, Users, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { signOut } from "@/services/authService";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const Navbar = () => {
   const location = useLocation();
+  const { user, setUser } = useAuth();
+  const { toast } = useToast();
 
   const navItems = [
     { label: "Admin", path: "/admin", icon: Shield },
@@ -11,6 +18,17 @@ const Navbar = () => {
     { label: "Customer", path: "/customer", icon: Users },
     { label: "Analytics", path: "/analytics", icon: BarChart3 },
   ];
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (!error) {
+      setUser(null);
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      });
+    }
+  };
 
   return (
     <nav className="bg-card border-b border-border shadow-sm">
@@ -23,7 +41,8 @@ const Navbar = () => {
             </Link>
           </div>
           
-          <div className="flex space-x-1">
+          <div className="flex items-center space-x-4">
+            <div className="flex space-x-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
@@ -44,6 +63,24 @@ const Navbar = () => {
                 </Link>
               );
             })}
+            </div>
+            
+            {user && (
+              <div className="flex items-center space-x-3 border-l pl-4">
+                <div className="text-sm">
+                  <p className="font-medium">{user.email}</p>
+                  <p className="text-muted-foreground capitalize">{user.role}</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSignOut}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

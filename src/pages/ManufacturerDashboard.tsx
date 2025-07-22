@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Factory, Package, Plus, QrCode } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { fetchProducts, addProduct, type Product } from "@/lib/productService";
+import { generateQRCode, downloadQRCode } from "@/lib/qrService";
 
 const ManufacturerDashboard = () => {
   const { toast } = useToast();
@@ -15,6 +16,7 @@ const ManufacturerDashboard = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadProducts();
@@ -25,6 +27,30 @@ const ManufacturerDashboard = () => {
     const data = await fetchProducts();
     setProducts(data);
     setLoading(false);
+  };
+
+  const generateQRForProduct = async (product: Product) => {
+    try {
+      const qrDataURL = await generateQRCode(product.qr_hash);
+      setQrCodes(prev => ({ ...prev, [product.id]: qrDataURL }));
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate QR code",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadQR = (product: Product) => {
+    const qrDataURL = qrCodes[product.id];
+    if (qrDataURL) {
+      downloadQRCode(product.qr_hash, qrDataURL);
+      toast({
+        title: "QR Code Downloaded",
+        description: `QR code for ${product.name} has been downloaded.`,
+      });
+    }
   };
 
   const handleRegisterProduct = async (e: React.FormEvent) => {
@@ -43,6 +69,8 @@ const ManufacturerDashboard = () => {
     
     if (result) {
       setProducts(prev => [result, ...prev]);
+      // Generate QR code for the new product
+      generateQRForProduct(result);
       setProductId("");
       setProductName("");
       toast({
@@ -152,9 +180,24 @@ const ManufacturerDashboard = () => {
               </div>
               
               <div className="pt-4 border-t">
-                <Button variant="outline" className="w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => {
+                    // Generate QR codes for all products that don't have them
+                    products.forEach(product => {
+                      if (!qrCodes[product.id]) {
+                        generateQRForProduct(product);
+                      }
+                    });
+                    toast({
+                      title: "QR Codes Generated",
+                      description: "QR codes have been generated for all products.",
+                    });
+                  }}
+                >
                   <QrCode className="h-4 w-4 mr-2" />
-                  Download QR Code Package
+                  Generate All QR Codes
                 </Button>
               </div>
             </CardContent>
@@ -198,7 +241,34 @@ const ManufacturerDashboard = () => {
                       </div>
                     </div>
                     
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      {qrCodes[product.id] && (
+                        <div className="flex flex-col items-center space-y-2">
+                          <img 
+                            src={qrCodes[product.id]} 
+                            alt="QR Code" 
+                            className="w-16 h-16 border rounded"
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDownloadQR(product)}
+                          >
+                            <QrCode className="h-3 w-3 mr-1" />
+                            Download
+                          </Button>
+                        </div>
+                      )}
+                      {!qrCodes[product.id] && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => generateQRForProduct(product)}
+                        >
+                          <QrCode className="h-3 w-3 mr-1" />
+                          Generate QR
+                        </Button>
+                      )}
                       <div className="text-right">
                         <p className="text-sm text-muted-foreground">Registered</p>
                         <p className="text-sm">{new Date(product.created_at).toLocaleDateString()}</p>

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { QrCode, ScanLine, ShieldCheck, ShieldX, Camera, CheckCircle, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { verifyProduct, verifyProductByQR } from "@/lib/productService";
+import { decodeQRFromFile } from "@/lib/qrService";
 
 interface VerificationResult {
   productId: string;
@@ -23,6 +24,7 @@ const CustomerDashboard = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   const [scanHistory, setScanHistory] = useState<VerificationResult[]>([]);
 
@@ -103,6 +105,59 @@ const CustomerDashboard = () => {
       });
       setVerificationResult(null);
     }
+    setVerifying(false);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadedFile(file);
+    setVerifying(true);
+
+    try {
+      const qrText = await decodeQRFromFile(file);
+      if (qrText) {
+        const result = await verifyProductByQR(qrText);
+        
+        if (result) {
+          const verificationData = {
+            productId: result.product_id,
+            productName: result.name,
+            status: result.is_fake ? 'Fake' as const : 'Real' as const,
+            verifiedAt: new Date().toLocaleString()
+          };
+          
+          setVerificationResult(verificationData);
+          setScanHistory(prev => [verificationData, ...prev.slice(0, 4)]);
+          
+          toast({
+            title: "QR Code Verified",
+            description: `Product verified from uploaded image.`,
+          });
+        } else {
+          toast({
+            title: "Invalid QR Code",
+            description: "No product found with this QR code.",
+            variant: "destructive",
+          });
+          setVerificationResult(null);
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: "Could not decode QR code from image.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process the uploaded image.",
+        variant: "destructive",
+      });
+    }
+    
     setVerifying(false);
   };
 
@@ -196,6 +251,23 @@ const CustomerDashboard = () => {
                   )}
                 </div>
                 
+                <div className="space-y-2">
+                  <Label htmlFor="qr-upload">Upload QR Code Image</Label>
+                  <Input
+                    id="qr-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    disabled={verifying}
+                    className="cursor-pointer"
+                  />
+                  {uploadedFile && (
+                    <p className="text-xs text-muted-foreground">
+                      Uploaded: {uploadedFile.name}
+                    </p>
+                  )}
+                </div>
+
                 <Button 
                   onClick={handleScanSimulation}
                   disabled={isScanning}

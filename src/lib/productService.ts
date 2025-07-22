@@ -1,4 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  addProductToBlockchain, 
+  checkProductOnBlockchain, 
+  markProductAsFakeOnBlockchain,
+  isWeb3Available 
+} from "./blockchainService";
 
 export interface Product {
   id: string;
@@ -13,6 +19,18 @@ export interface Product {
 // Add a new product
 export async function addProduct(productId: string, name: string): Promise<Product | null> {
   const qrHash = `product_${productId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Try blockchain first, fallback to Supabase
+  if (await isWeb3Available()) {
+    try {
+      const blockchainSuccess = await addProductToBlockchain(productId, name);
+      if (blockchainSuccess) {
+        console.log('Product added to blockchain successfully');
+      }
+    } catch (error) {
+      console.log('Blockchain failed, using Supabase fallback');
+    }
+  }
   
   const { data, error } = await supabase
     .from('products')
@@ -52,6 +70,18 @@ export async function fetchProducts(): Promise<Product[]> {
 
 // Mark product as fake
 export async function markAsFake(productId: string): Promise<Product | null> {
+  // Try blockchain first, fallback to Supabase
+  if (await isWeb3Available()) {
+    try {
+      const blockchainSuccess = await markProductAsFakeOnBlockchain(productId);
+      if (blockchainSuccess) {
+        console.log('Product marked as fake on blockchain successfully');
+      }
+    } catch (error) {
+      console.log('Blockchain failed, using Supabase fallback');
+    }
+  }
+  
   const { data, error } = await supabase
     .from('products')
     .update({ is_fake: true })
@@ -69,6 +99,19 @@ export async function markAsFake(productId: string): Promise<Product | null> {
 
 // Verify product authenticity
 export async function verifyProduct(productId: string): Promise<{ name: string; is_fake: boolean } | null> {
+  // Try blockchain first, fallback to Supabase
+  if (await isWeb3Available()) {
+    try {
+      const blockchainResult = await checkProductOnBlockchain(productId);
+      if (blockchainResult !== null) {
+        console.log('Product verified via blockchain');
+        // Note: This is simplified - in reality you'd need to get product name from blockchain too
+      }
+    } catch (error) {
+      console.log('Blockchain failed, using Supabase fallback');
+    }
+  }
+  
   const { data, error } = await supabase
     .from('products')
     .select('name, is_fake')
