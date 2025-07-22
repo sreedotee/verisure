@@ -25,14 +25,19 @@ const ManufacturerDashboard = () => {
   const loadProducts = async () => {
     setLoading(true);
     const data = await fetchProducts();
+    console.log("📦 Products fetched with qr_hash:", data);
     setProducts(data);
     setLoading(false);
   };
 
   const generateQRForProduct = async (product: Product) => {
     try {
+      if (!product.qr_hash) {
+        console.error("❌ Missing qr_hash for product:", product);
+        return;
+      }
       console.log("✅ Encoding QR with DB hash:", product.qr_hash);
-      const qrDataURL = await generateQRCode(product.qr_hash); // Encode DB hash
+      const qrDataURL = await generateQRCode(product.qr_hash);
       setQrCodes(prev => ({ ...prev, [product.id]: qrDataURL }));
     } catch (error) {
       console.error("❌ QR Generation failed:", error);
@@ -48,7 +53,7 @@ const ManufacturerDashboard = () => {
     const qrDataURL = qrCodes[product.id];
     if (qrDataURL) {
       console.log("⬇️ Downloading QR for hash:", product.qr_hash);
-      downloadQRCode(product.qr_hash, qrDataURL); // Use DB hash for file
+      downloadQRCode(product.qr_hash, qrDataURL);
       toast({
         title: "QR Code Downloaded",
         description: `QR code for ${product.name} has been downloaded.`,
@@ -69,9 +74,9 @@ const ManufacturerDashboard = () => {
 
     setSubmitting(true);
     const result = await addProduct(productId.trim(), productName.trim());
-    if (result) {
+    if (result?.qr_hash) {
       setProducts(prev => [result, ...prev]);
-      generateQRForProduct(result); // Auto-generate QR for new product
+      generateQRForProduct(result);
       setProductId("");
       setProductName("");
       toast({
@@ -79,6 +84,7 @@ const ManufacturerDashboard = () => {
         description: `${productName} has been successfully registered with ID: ${productId}`,
       });
     } else {
+      console.error("❌ Failed to register product or missing qr_hash:", result);
       toast({
         title: "Error",
         description: "Failed to register product. Product ID might already exist.",
@@ -105,7 +111,9 @@ const ManufacturerDashboard = () => {
                 <Plus className="h-5 w-5 mr-2" />
                 Register New Product
               </CardTitle>
-              <p className="text-sm text-muted-foreground">Add a new product to the authenticity registry</p>
+              <p className="text-sm text-muted-foreground">
+                Add a new product to the authenticity registry
+              </p>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleRegisterProduct} className="space-y-4">
@@ -222,3 +230,4 @@ const ManufacturerDashboard = () => {
 };
 
 export default ManufacturerDashboard;
+
