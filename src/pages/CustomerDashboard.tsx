@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { QrCode, ScanLine, ShieldCheck, ShieldX, Camera, CheckCircle, Search, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { verifyProduct } from "@/lib/productService";
+import { verifyProduct, verifyProductByQR } from "@/lib/productService";
 
 interface VerificationResult {
   productId: string;
@@ -25,7 +25,6 @@ const CustomerDashboard = () => {
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
-
   const [scanHistory, setScanHistory] = useState<VerificationResult[]>([]);
 
   const handleVerifyById = async (e: React.FormEvent) => {
@@ -68,13 +67,53 @@ const CustomerDashboard = () => {
     setVerifying(false);
   };
 
+  const handleVerifyByQR = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!qrHash.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a QR hash to verify.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setVerifying(true);
+    const result = await verifyProductByQR(qrHash.trim());
+
+    if (result) {
+      const verificationData = {
+        productId: result.product_id,
+        productName: result.name,
+        status: result.is_fake ? 'Fake' : 'Real',
+        verifiedAt: new Date().toLocaleString()
+      };
+
+      setVerificationResult(verificationData);
+      setScanHistory(prev => [verificationData, ...prev.slice(0, 4)]);
+
+      toast({
+        title: "Verification Complete",
+        description: `Product ${result.name} is ${verificationData.status}`,
+      });
+    } else {
+      toast({
+        title: "Invalid QR Code",
+        description: "No product found with this QR hash.",
+        variant: "destructive",
+      });
+      setVerificationResult(null);
+    }
+    setVerifying(false);
+  };
+
   const processQRFile = async (file: File) => {
     if (!file) return;
 
     setUploadedFile(file);
 
     try {
-      // 🩹 Extract QR hash from file name (drop .png)
+      // 🩹 Extract QR hash from file name (drop extension)
       const fileName = file.name.replace(/\.[^/.]+$/, "");
       console.log('📦 Extracted QR Hash from file name:', fileName);
 
@@ -149,8 +188,9 @@ const CustomerDashboard = () => {
   };
 
   return (
-    // ... your existing UI JSX stays the same
+    // ... your existing JSX unchanged
   );
 };
 
 export default CustomerDashboard;
+
