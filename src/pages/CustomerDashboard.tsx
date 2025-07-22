@@ -112,61 +112,75 @@ const CustomerDashboard = () => {
     setVerifying(false);
   };
 
-  const processQRFile = async (file: File) => {
-    if (!file) return;
+const processQRFile = async (file: File) => {
+  if (!file) return;
 
-    setUploadedFile(file);
-    setVerifying(true);
+  setUploadedFile(file);
+  setVerifying(true);
 
-    try {
-      const rawQR = await decodeQRFromFile(file);
-      if (rawQR) {
-        const cleanHash = rawQR.trim().replace(/\\.png$/i, ''); // sanitize
-        console.log('📦 Decoded & Sanitized QR:', cleanHash);
+  try {
+    const rawQR = await decodeQRFromFile(file);
+    if (rawQR) {
+      const cleanHash = rawQR.trim().replace(/\.png$/i, ''); // sanitize
+      console.log('📦 Decoded & Sanitized QR:', cleanHash);
 
-        const result = await verifyProductByQR(cleanHash);
+      // Try full QR hash verification first
+      let result = await verifyProductByQR(cleanHash);
 
-        if (result) {
-          const verificationData = {
-            productId: result.product_id,
-            productName: result.name,
-            status: result.is_fake ? 'Fake' as const : 'Real' as const,
-            verifiedAt: new Date().toLocaleString()
-          };
+      if (!result) {
+        console.warn("⚠️ Full QR hash lookup failed. Trying fallback with numeric product ID…");
 
-          setVerificationResult(verificationData);
-          setScanHistory(prev => [verificationData, ...prev.slice(0, 4)]);
-
-          toast({
-            title: "QR Code Verified",
-            description: `Product ${result.name} is ${verificationData.status}`,
-          });
-        } else {
-          toast({
-            title: "Invalid QR Code",
-            description: "No product found with this QR code.",
-            variant: "destructive",
-          });
-          setVerificationResult(null);
+        // Extract numeric product ID (from something like product_9099_)
+        const partialMatch = cleanHash.match(/product_(\d+)_/);
+        if (partialMatch && partialMatch[1]) {
+          const partialProductId = partialMatch[1];
+          console.log("🔎 Fallback partial product ID extracted:", partialProductId);
+          result = await verifyProduct(partialProductId);
         }
+      }
+
+      if (result) {
+        const verificationData = {
+          productId: result.product_id,
+          productName: result.name,
+          status: result.is_fake ? 'Fake' as const : 'Real' as const,
+          verifiedAt: new Date().toLocaleString()
+        };
+
+        setVerificationResult(verificationData);
+        setScanHistory(prev => [verificationData, ...prev.slice(0, 4)]);
+
+        toast({
+          title: "QR Code Verified",
+          description: `Product ${result.name} is ${verificationData.status}`,
+        });
       } else {
         toast({
-          title: "Error",
-          description: "Could not decode QR code from image.",
+          title: "Invalid QR Code",
+          description: "No product found with this QR code.",
           variant: "destructive",
         });
+        setVerificationResult(null);
       }
-    } catch (error) {
-      console.error('❌ Error processing QR file:', error);
+    } else {
       toast({
         title: "Error",
-        description: "Failed to process the uploaded image.",
+        description: "Could not decode QR code from image.",
         variant: "destructive",
       });
     }
+  } catch (error) {
+    console.error('❌ Error processing QR file:', error);
+    toast({
+      title: "Error",
+      description: "Failed to process the uploaded image.",
+      variant: "destructive",
+    });
+  }
 
-    setVerifying(false);
-  };
+  setVerifying(false);
+};
+
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
