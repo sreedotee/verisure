@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,30 +6,48 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ShieldCheck, ShieldX, Plus, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { fetchProducts, markAsFake, type Product } from "@/lib/productService";
 
 const AdminDashboard = () => {
   const { toast } = useToast();
-  const [products, setProducts] = useState([
-    { id: '001', name: 'Nike AirMax', status: 'Real', qrHash: 'product_001_hash_abc123...' },
-    { id: '002', name: 'Adidas Bag', status: 'Fake', qrHash: 'product_002_hash_def456...' },
-    { id: '003', name: 'Levi\'s Tee', status: 'Real', qrHash: 'product_003_hash_ghi789...' }
-  ]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleMarkAsFake = (productId: string) => {
-    setProducts(prev => 
-      prev.map(p => 
-        p.id === productId ? { ...p, status: 'Fake' } : p
-      )
-    );
-    toast({
-      title: "Product Status Updated",
-      description: `Product ${productId} has been marked as fake.`,
-      variant: "destructive",
-    });
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    setLoading(true);
+    const data = await fetchProducts();
+    setProducts(data);
+    setLoading(false);
   };
 
-  const realCount = products.filter(p => p.status === 'Real').length;
-  const fakeCount = products.filter(p => p.status === 'Fake').length;
+  const handleMarkAsFake = async (productId: string) => {
+    const result = await markAsFake(productId);
+    if (result) {
+      setProducts(prev => 
+        prev.map(p => 
+          p.product_id === productId ? { ...p, is_fake: true } : p
+        )
+      );
+      toast({
+        title: "Product Status Updated",
+        description: `Product ${productId} has been marked as fake.`,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to update product status.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const realCount = products.filter(p => !p.is_fake).length;
+  const fakeCount = products.filter(p => p.is_fake).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -103,39 +121,53 @@ const AdminDashboard = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {products.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">{product.id}</TableCell>
-                    <TableCell>{product.name}</TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={product.status === 'Real' ? 'default' : 'destructive'}
-                        className={product.status === 'Real' ? 'bg-success hover:bg-success/80' : ''}
-                      >
-                        {product.status === 'Real' ? (
-                          <ShieldCheck className="h-3 w-3 mr-1" />
-                        ) : (
-                          <ShieldX className="h-3 w-3 mr-1" />
-                        )}
-                        {product.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {product.qrHash}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleMarkAsFake(product.id)}
-                        disabled={product.status === 'Fake'}
-                      >
-                        <ShieldX className="h-3 w-3 mr-1" />
-                        Mark as Fake
-                      </Button>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8">
+                      Loading products...
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : products.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8">
+                      No products found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  products.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell className="font-medium">{product.product_id}</TableCell>
+                      <TableCell>{product.name}</TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={!product.is_fake ? 'default' : 'destructive'}
+                          className={!product.is_fake ? 'bg-success hover:bg-success/80' : ''}
+                        >
+                          {!product.is_fake ? (
+                            <ShieldCheck className="h-3 w-3 mr-1" />
+                          ) : (
+                            <ShieldX className="h-3 w-3 mr-1" />
+                          )}
+                          {!product.is_fake ? 'Real' : 'Fake'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {product.qr_hash}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleMarkAsFake(product.product_id)}
+                          disabled={product.is_fake}
+                        >
+                          <ShieldX className="h-3 w-3 mr-1" />
+                          Mark as Fake
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>

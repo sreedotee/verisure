@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,19 +6,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Factory, Package, Plus, QrCode } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { fetchProducts, addProduct, type Product } from "@/lib/productService";
 
 const ManufacturerDashboard = () => {
   const { toast } = useToast();
   const [productId, setProductId] = useState("");
   const [productName, setProductName] = useState("");
-  const [registeredProducts, setRegisteredProducts] = useState([
-    { id: '001', name: 'Nike AirMax', registeredDate: '2024-01-15' },
-    { id: '002', name: 'Adidas Bag', registeredDate: '2024-01-20' }
-  ]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleRegisterProduct = (e: React.FormEvent) => {
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    setLoading(true);
+    const data = await fetchProducts();
+    setProducts(data);
+    setLoading(false);
+  };
+
+  const handleRegisterProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productId || !productName) {
+    if (!productId.trim() || !productName.trim()) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -27,20 +38,25 @@ const ManufacturerDashboard = () => {
       return;
     }
 
-    const newProduct = {
-      id: productId,
-      name: productName,
-      registeredDate: new Date().toISOString().split('T')[0]
-    };
-
-    setRegisteredProducts(prev => [...prev, newProduct]);
-    setProductId("");
-    setProductName("");
+    setSubmitting(true);
+    const result = await addProduct(productId.trim(), productName.trim());
     
-    toast({
-      title: "Product Registered",
-      description: `${productName} has been successfully registered with ID: ${productId}`,
-    });
+    if (result) {
+      setProducts(prev => [result, ...prev]);
+      setProductId("");
+      setProductName("");
+      toast({
+        title: "Product Registered",
+        description: `${productName} has been successfully registered with ID: ${productId}`,
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to register product. Product ID might already exist.",
+        variant: "destructive",
+      });
+    }
+    setSubmitting(false);
   };
 
   return (
@@ -78,6 +94,7 @@ const ManufacturerDashboard = () => {
                     value={productId}
                     onChange={(e) => setProductId(e.target.value)}
                     className="w-full"
+                    disabled={submitting}
                   />
                 </div>
                 
@@ -92,12 +109,13 @@ const ManufacturerDashboard = () => {
                     value={productName}
                     onChange={(e) => setProductName(e.target.value)}
                     className="w-full"
+                    disabled={submitting}
                   />
                 </div>
 
-                <Button type="submit" className="w-full bg-primary">
+                <Button type="submit" className="w-full bg-primary" disabled={submitting}>
                   <Package className="h-4 w-4 mr-2" />
-                  Register Product
+                  {submitting ? "Registering..." : "Register Product"}
                 </Button>
               </form>
             </CardContent>
@@ -115,14 +133,21 @@ const ManufacturerDashboard = () => {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Total Products Registered</span>
                 <Badge variant="secondary" className="text-lg px-3 py-1">
-                  {registeredProducts.length}
+                  {loading ? "..." : products.length}
                 </Badge>
               </div>
               
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">QR Codes Generated</span>
                 <Badge variant="secondary" className="text-lg px-3 py-1">
-                  {registeredProducts.length}
+                  {loading ? "..." : products.length}
+                </Badge>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Active Products</span>
+                <Badge variant="secondary" className="text-lg px-3 py-1">
+                  {loading ? "..." : products.filter(p => !p.is_fake).length}
                 </Badge>
               </div>
               
@@ -146,32 +171,48 @@ const ManufacturerDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {registeredProducts.map((product) => (
-                <div 
-                  key={product.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="bg-primary/10 p-2 rounded-lg">
-                      <Package className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">{product.name}</h3>
-                      <p className="text-sm text-muted-foreground">ID: {product.id}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Registered</p>
-                      <p className="text-sm">{product.registeredDate}</p>
-                    </div>
-                    <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-                      Active
-                    </Badge>
-                  </div>
+              {loading ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Loading products...</p>
                 </div>
-              ))}
+              ) : products.length === 0 ? (
+                <div className="text-center py-8">
+                  <Package className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">No products registered yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">Register your first product above</p>
+                </div>
+              ) : (
+                products.map((product) => (
+                  <div 
+                    key={product.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="bg-primary/10 p-2 rounded-lg">
+                        <Package className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium">{product.name}</h3>
+                        <p className="text-sm text-muted-foreground">ID: {product.product_id}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{product.qr_hash}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-4">
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">Registered</p>
+                        <p className="text-sm">{new Date(product.created_at).toLocaleDateString()}</p>
+                      </div>
+                      <Badge 
+                        variant="outline" 
+                        className={product.is_fake ? "border-destructive/20 text-destructive" : "bg-success/10 text-success border-success/20"}
+                      >
+                        {product.is_fake ? "Flagged" : "Active"}
+                      </Badge>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
