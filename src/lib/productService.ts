@@ -20,7 +20,6 @@ export interface Product {
 export async function addProduct(productId: string, name: string): Promise<Product | null> {
   const qrHash = `product_${productId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  // Try blockchain first, fallback to Supabase
   if (await isWeb3Available()) {
     try {
       const blockchainSuccess = await addProductToBlockchain(productId, name);
@@ -147,37 +146,60 @@ export async function verifyProduct(productId: string): Promise<{ name: string; 
   }
 }
 
+// Fallback partial match for QR decode
 export async function verifyProductByQR(qrHash: string): Promise<{ name: string; is_fake: boolean; product_id: string } | null> {
   try {
     const cleanHash = qrHash.trim().replace(/\\.png$/i, '');
     console.log('🔎 Cleaned QR Hash for query:', cleanHash);
 
+    // Try full hash match first
     const { data, error } = await supabase
       .from('products')
       .select('name, is_fake, product_id')
-      .ilike('qr_hash', `%${cleanHash}%`) // partial match, case-insensitive
+      .ilike('qr_hash', `%${cleanHash}%`)
       .limit(1)
-      .maybeSingle(); // safe if 0 rows
+      .maybeSingle();
 
-    if (error) {
-      console.error('❌ Supabase error in verifyProductByQR:', error);
+    if (data) {
+      console.log('✅ Full hash match found:', data);
+      return data;
+    }
+
+    // Fallback: extract partial product ID from QR (e.g., product_9099_)
+    const match = cleanHash.match(/product_(\d+)_/);
+    if (!match) {
+      console.warn("⚠️ No numeric product ID found in QR hash:", cleanHash);
       return null;
     }
 
-    if (!data) {
-      console.warn('⚠️ No product found for QR hash:', cleanHash);
+    const partialProductId = match[1];
+    console.log('🔎 Fallback partial product ID:', partialProductId);
+
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('products')
+      .select('name, is_fake, product_id')
+      .ilike('product_id', `%${partialProductId}%`)
+      .limit(1)
+      .maybeSingle();
+
+    if (fallbackError) {
+      console.error('❌ Supabase error in fallback partial match:', fallbackError);
       return null;
     }
 
-    console.log('✅ Product found:', data);
-    return data;
+    if (!fallbackData) {
+      console.warn('⚠️ No product found for partial ID:', partialProductId);
+      return null;
+    }
+
+    console.log('✅ Fallback partial match found:', fallbackData);
+    return fallbackData;
 
   } catch (err) {
-    console.error('❌ Unexpected error in verifyProductByQR:', err);
+    console.error('❌ Unexpected error in verifyProductByQR (fallback):', err);
     return null;
   }
 }
-
 
 // Get analytics data
 export async function getAnalytics() {
