@@ -7,8 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { QrCode, ScanLine, ShieldCheck, ShieldX, Camera, CheckCircle, Search, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { verifyProduct, verifyProductByQR } from "@/lib/productService";
-import { decodeQRFromFile } from "@/lib/qrService";
+import { verifyProduct } from "@/lib/productService";
 
 interface VerificationResult {
   productId: string;
@@ -47,7 +46,7 @@ const CustomerDashboard = () => {
       const verificationData = {
         productId: productId.trim(),
         productName: result.name,
-        status: result.is_fake ? 'Fake' as const : 'Real' as const,
+        status: result.is_fake ? 'Fake' : 'Real',
         verifiedAt: new Date().toLocaleString()
       };
 
@@ -69,118 +68,32 @@ const CustomerDashboard = () => {
     setVerifying(false);
   };
 
-  const handleVerifyByQR = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!qrHash.trim()) {
+  const processQRFile = async (file: File) => {
+    if (!file) return;
+
+    setUploadedFile(file);
+
+    try {
+      // 🩹 Extract QR hash from file name (drop .png)
+      const fileName = file.name.replace(/\.[^/.]+$/, "");
+      console.log('📦 Extracted QR Hash from file name:', fileName);
+
+      // Fill QR Hash (for testing) input
+      setQrHash(fileName);
+
+      toast({
+        title: "QR Hash Ready",
+        description: "Extracted from file name and filled in test field.",
+      });
+    } catch (error) {
+      console.error('❌ Error processing QR file:', error);
       toast({
         title: "Error",
-        description: "Please enter a QR hash to verify.",
+        description: "Failed to process the uploaded file.",
         variant: "destructive",
       });
-      return;
     }
-
-    setVerifying(true);
-    const cleanHash = qrHash.trim().replace(/\\.png$/i, ''); // remove trailing .png
-    console.log('🔎 Sanitized QR Hash:', cleanHash);
-
-    const result = await verifyProductByQR(cleanHash);
-
-    if (result) {
-      const verificationData = {
-        productId: result.product_id,
-        productName: result.name,
-        status: result.is_fake ? 'Fake' as const : 'Real' as const,
-        verifiedAt: new Date().toLocaleString()
-      };
-
-      setVerificationResult(verificationData);
-      setScanHistory(prev => [verificationData, ...prev.slice(0, 4)]);
-
-      toast({
-        title: "Verification Complete",
-        description: `Product ${result.name} is ${verificationData.status}`,
-      });
-    } else {
-      toast({
-        title: "Invalid QR Code",
-        description: "No product found with this QR hash.",
-        variant: "destructive",
-      });
-      setVerificationResult(null);
-    }
-    setVerifying(false);
   };
-
-const processQRFile = async (file: File) => {
-  if (!file) return;
-
-  setUploadedFile(file);
-  setVerifying(true);
-
-  try {
-    const rawQR = await decodeQRFromFile(file);
-    if (rawQR) {
-      const cleanHash = rawQR.trim().replace(/\.png$/i, ''); // sanitize
-      console.log('📦 Decoded & Sanitized QR:', cleanHash);
-
-      // Try full QR hash verification first
-      let result = await verifyProductByQR(cleanHash);
-
-      if (!result) {
-        console.warn("⚠️ Full QR hash lookup failed. Trying fallback with numeric product ID…");
-
-        // Extract numeric product ID (from something like product_9099_)
-        const partialMatch = cleanHash.match(/product_(\d+)_/);
-        if (partialMatch && partialMatch[1]) {
-          const partialProductId = partialMatch[1];
-          console.log("🔎 Fallback partial product ID extracted:", partialProductId);
-          result = await verifyProduct(partialProductId);
-        }
-      }
-
-      if (result) {
-        const verificationData = {
-          productId: result.product_id,
-          productName: result.name,
-          status: result.is_fake ? 'Fake' as const : 'Real' as const,
-          verifiedAt: new Date().toLocaleString()
-        };
-
-        setVerificationResult(verificationData);
-        setScanHistory(prev => [verificationData, ...prev.slice(0, 4)]);
-
-        toast({
-          title: "QR Code Verified",
-          description: `Product ${result.name} is ${verificationData.status}`,
-        });
-      } else {
-        toast({
-          title: "Invalid QR Code",
-          description: "No product found with this QR code.",
-          variant: "destructive",
-        });
-        setVerificationResult(null);
-      }
-    } else {
-      toast({
-        title: "Error",
-        description: "Could not decode QR code from image.",
-        variant: "destructive",
-      });
-    }
-  } catch (error) {
-    console.error('❌ Error processing QR file:', error);
-    toast({
-      title: "Error",
-      description: "Failed to process the uploaded image.",
-      variant: "destructive",
-    });
-  }
-
-  setVerifying(false);
-};
-
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -208,7 +121,7 @@ const processQRFile = async (file: File) => {
       await processQRFile(imageFile);
       toast({
         title: "QR Code Dropped",
-        description: "Processing your QR code image...",
+        description: "QR hash extracted from file name.",
       });
     } else {
       toast({
@@ -223,7 +136,7 @@ const processQRFile = async (file: File) => {
     setQrHash("product_001_hash_abc123def456");
     toast({
       title: "QR Code Scanned",
-      description: "QR code detected. Click verify to check authenticity.",
+      description: "QR hash filled. Click verify to check authenticity.",
     });
   };
 
@@ -236,8 +149,7 @@ const processQRFile = async (file: File) => {
   };
 
   return (
-    // ... UI unchanged
-    // Your existing UI JSX stays the same
+    // ... your existing UI JSX stays the same
   );
 };
 
