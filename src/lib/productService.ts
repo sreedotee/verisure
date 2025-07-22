@@ -147,25 +147,29 @@ export async function verifyProduct(productId: string): Promise<{ name: string; 
   }
 }
 
-// Verify product by QR hash
 export async function verifyProductByQR(qrHash: string): Promise<{ name: string; is_fake: boolean; product_id: string } | null> {
   try {
-    const cleanHash = qrHash.trim().replace(/\\.png$/i, ''); // Strip trailing .png
-    console.log('🔎 Sanitized QR Hash:', cleanHash);
+    const cleanHash = qrHash.trim().replace(/\\.png$/i, '');
+    console.log('🔎 Cleaned QR Hash for query:', cleanHash);
 
     const { data, error } = await supabase
       .from('products')
       .select('name, is_fake, product_id')
-      .ilike('qr_hash', `%${cleanHash}%`)
+      .ilike('qr_hash', `%${cleanHash}%`) // partial match, case-insensitive
       .limit(1)
-      .single();
+      .maybeSingle(); // safe if 0 rows
 
     if (error) {
-      console.error('❌ Error verifying product by QR (Supabase):', error);
+      console.error('❌ Supabase error in verifyProductByQR:', error);
       return null;
     }
 
-    console.log('✅ Product found via QR:', data);
+    if (!data) {
+      console.warn('⚠️ No product found for QR hash:', cleanHash);
+      return null;
+    }
+
+    console.log('✅ Product found:', data);
     return data;
 
   } catch (err) {
@@ -173,6 +177,7 @@ export async function verifyProductByQR(qrHash: string): Promise<{ name: string;
     return null;
   }
 }
+
 
 // Get analytics data
 export async function getAnalytics() {
