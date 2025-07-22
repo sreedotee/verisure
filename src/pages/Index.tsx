@@ -48,7 +48,7 @@ const Index = () => {
             </div>
             
             <h1 className="text-5xl font-bold text-foreground mb-6">
-              AuthentiCore
+              VeriSure
             </h1>
             
             <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
@@ -118,25 +118,6 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Stats Section */}
-      <div className="bg-muted/30 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div>
-              <div className="text-4xl font-bold text-success mb-2">99.7%</div>
-              <div className="text-muted-foreground">Authentication Accuracy</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-primary mb-2">1M+</div>
-              <div className="text-muted-foreground">Products Verified</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-accent mb-2">500+</div>
-              <div className="text-muted-foreground">Brand Partners</div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

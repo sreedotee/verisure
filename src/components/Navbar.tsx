@@ -19,7 +19,7 @@ const Navbar = () => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
               <ShieldCheck className="h-8 w-8 text-primary" />
-              <span className="text-xl font-bold text-foreground">AuthentiCore</span>
+              <span className="text-xl font-bold text-foreground">VeriSure</span>
             </Link>
           </div>
           
