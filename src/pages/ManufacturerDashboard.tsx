@@ -25,7 +25,6 @@ const ManufacturerDashboard = () => {
   const loadProducts = async () => {
     setLoading(true);
     const data = await fetchProducts();
-    console.log("📦 Products fetched with qr_hash:", data);
     setProducts(data);
     setLoading(false);
   };
@@ -36,7 +35,7 @@ const ManufacturerDashboard = () => {
         console.error("❌ Missing qr_hash for product:", product);
         return;
       }
-      console.log("✅ Encoding QR with DB hash:", product.qr_hash);
+      console.log("✅ Generating QR for hash:", product.qr_hash);
       const qrDataURL = await generateQRCode(product.qr_hash);
       setQrCodes(prev => ({ ...prev, [product.id]: qrDataURL }));
     } catch (error) {
@@ -52,7 +51,6 @@ const ManufacturerDashboard = () => {
   const handleDownloadQR = (product: Product) => {
     const qrDataURL = qrCodes[product.id];
     if (qrDataURL) {
-      console.log("⬇️ Downloading QR for hash:", product.qr_hash);
       downloadQRCode(product.qr_hash, qrDataURL);
       toast({
         title: "QR Code Downloaded",
@@ -230,4 +228,5 @@ const ManufacturerDashboard = () => {
 };
 
 export default ManufacturerDashboard;
+
 
