@@ -2,6 +2,7 @@ import jsQR from 'jsqr';
 import QRCode from 'qrcode';
 
 export async function generateQRCode(text: string): Promise<string> {
+  console.log("🚨 QR Generator Input:", text); // 👈 Debug log here
   try {
     const qrCodeDataURL = await QRCode.toDataURL(text, {
       width: 256,
@@ -17,6 +18,7 @@ export async function generateQRCode(text: string): Promise<string> {
     throw error;
   }
 }
+
 
 export function downloadQRCode(qrHash: string, dataURL: string) {
   const link = document.createElement('a');
