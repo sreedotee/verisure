@@ -29,29 +29,32 @@ const ManufacturerDashboard = () => {
     setLoading(false);
   };
 
-  const generateQRForProduct = async (product: Product) => {
-    try {
-      const qrDataURL = await generateQRCode(product.qr_hash);
-      setQrCodes(prev => ({ ...prev, [product.id]: qrDataURL }));
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to generate QR code",
-        variant: "destructive",
-      });
-    }
-  };
+const generateQRForProduct = async (product: Product) => {
+  try {
+    console.log('🔗 Encoding QR with hash:', product.qr_hash); // Debug log
+    const qrDataURL = await generateQRCode(product.qr_hash); // ✅ Use DB hash
+    setQrCodes(prev => ({ ...prev, [product.id]: qrDataURL }));
+  } catch (error) {
+    toast({
+      title: "Error",
+      description: "Failed to generate QR code",
+      variant: "destructive",
+    });
+  }
+};
 
-  const handleDownloadQR = (product: Product) => {
-    const qrDataURL = qrCodes[product.id];
-    if (qrDataURL) {
-      downloadQRCode(product.qr_hash, qrDataURL);
-      toast({
-        title: "QR Code Downloaded",
-        description: `QR code for ${product.name} has been downloaded.`,
-      });
-    }
-  };
+
+const handleDownloadQR = (product: Product) => {
+  const qrDataURL = qrCodes[product.id];
+  if (qrDataURL) {
+    console.log('⬇️ Downloading QR for hash:', product.qr_hash); // Debug log
+    downloadQRCode(product.qr_hash, qrDataURL); // ✅ Pass DB hash
+    toast({
+      title: "QR Code Downloaded",
+      description: `QR code for ${product.name} has been downloaded.`,
+    });
+  }
+};
 
   const handleRegisterProduct = async (e: React.FormEvent) => {
     e.preventDefault();
