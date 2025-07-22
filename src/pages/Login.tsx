@@ -218,6 +218,19 @@ const Login = () => {
             <p><strong>Admin:</strong> admin@verisure.com / password123</p>
             <p><strong>Manufacturer:</strong> manufacturer@verisure.com / password123</p>
             <p><strong>Customer:</strong> customer@verisure.com / password123</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              These accounts work even if Supabase auth is not configured
+            </p>
+          </div>
+        </div>
+        
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <h4 className="font-medium text-blue-900 mb-1">Supabase Setup Required:</h4>
+          <div className="text-xs text-blue-800 space-y-1">
+            <p>1. Go to your Supabase project → Authentication → Settings</p>
+            <p>2. Enable "Email" provider</p>
+            <p>3. Disable "Confirm email" for demo purposes</p>
+            <p>4. Add site URL: https://localhost:8080</p>
           </div>
         </div>
       </div>
