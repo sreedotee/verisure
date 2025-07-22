@@ -29,32 +29,32 @@ const ManufacturerDashboard = () => {
     setLoading(false);
   };
 
-const generateQRForProduct = async (product: Product) => {
-  try {
-    console.log('🔗 Encoding QR with hash:', product.qr_hash); // Debug log
-    const qrDataURL = await generateQRCode(product.qr_hash); // ✅ Use DB hash
-    setQrCodes(prev => ({ ...prev, [product.id]: qrDataURL }));
-  } catch (error) {
-    toast({
-      title: "Error",
-      description: "Failed to generate QR code",
-      variant: "destructive",
-    });
-  }
-};
+  const generateQRForProduct = async (product: Product) => {
+    try {
+      console.log("✅ Encoding QR with DB hash:", product.qr_hash);
+      const qrDataURL = await generateQRCode(product.qr_hash); // Encode DB hash
+      setQrCodes(prev => ({ ...prev, [product.id]: qrDataURL }));
+    } catch (error) {
+      console.error("❌ QR Generation failed:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate QR code",
+        variant: "destructive",
+      });
+    }
+  };
 
-
-const handleDownloadQR = (product: Product) => {
-  const qrDataURL = qrCodes[product.id];
-  if (qrDataURL) {
-    console.log('⬇️ Downloading QR for hash:', product.qr_hash); // Debug log
-    downloadQRCode(product.qr_hash, qrDataURL); // ✅ Pass DB hash
-    toast({
-      title: "QR Code Downloaded",
-      description: `QR code for ${product.name} has been downloaded.`,
-    });
-  }
-};
+  const handleDownloadQR = (product: Product) => {
+    const qrDataURL = qrCodes[product.id];
+    if (qrDataURL) {
+      console.log("⬇️ Downloading QR for hash:", product.qr_hash);
+      downloadQRCode(product.qr_hash, qrDataURL); // Use DB hash for file
+      toast({
+        title: "QR Code Downloaded",
+        description: `QR code for ${product.name} has been downloaded.`,
+      });
+    }
+  };
 
   const handleRegisterProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,11 +69,9 @@ const handleDownloadQR = (product: Product) => {
 
     setSubmitting(true);
     const result = await addProduct(productId.trim(), productName.trim());
-    
     if (result) {
       setProducts(prev => [result, ...prev]);
-      // Generate QR code for the new product
-      generateQRForProduct(result);
+      generateQRForProduct(result); // Auto-generate QR for new product
       setProductId("");
       setProductName("");
       toast({
@@ -93,7 +91,6 @@ const handleDownloadQR = (product: Product) => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">Manufacturer Dashboard</h1>
@@ -108,16 +105,12 @@ const handleDownloadQR = (product: Product) => {
                 <Plus className="h-5 w-5 mr-2" />
                 Register New Product
               </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Add a new product to the authenticity registry
-              </p>
+              <p className="text-sm text-muted-foreground">Add a new product to the authenticity registry</p>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleRegisterProduct} className="space-y-4">
                 <div>
-                  <label htmlFor="productId" className="block text-sm font-medium mb-2">
-                    Product ID
-                  </label>
+                  <label htmlFor="productId" className="block text-sm font-medium mb-2">Product ID</label>
                   <Input
                     id="productId"
                     type="text"
@@ -128,11 +121,8 @@ const handleDownloadQR = (product: Product) => {
                     disabled={submitting}
                   />
                 </div>
-                
                 <div>
-                  <label htmlFor="productName" className="block text-sm font-medium mb-2">
-                    Product Name
-                  </label>
+                  <label htmlFor="productName" className="block text-sm font-medium mb-2">Product Name</label>
                   <Input
                     id="productName"
                     type="text"
@@ -143,7 +133,6 @@ const handleDownloadQR = (product: Product) => {
                     disabled={submitting}
                   />
                 </div>
-
                 <Button type="submit" className="w-full bg-primary" disabled={submitting}>
                   <Package className="h-4 w-4 mr-2" />
                   {submitting ? "Registering..." : "Register Product"}
@@ -152,7 +141,7 @@ const handleDownloadQR = (product: Product) => {
             </CardContent>
           </Card>
 
-          {/* Stats Card */}
+          {/* Stats */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -161,42 +150,23 @@ const handleDownloadQR = (product: Product) => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Total Products Registered</span>
-                <Badge variant="secondary" className="text-lg px-3 py-1">
-                  {loading ? "..." : products.length}
-                </Badge>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Total Products</span>
+                <Badge variant="secondary">{loading ? "..." : products.length}</Badge>
               </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">QR Codes Generated</span>
-                <Badge variant="secondary" className="text-lg px-3 py-1">
-                  {loading ? "..." : products.length}
-                </Badge>
-              </div>
-              
-              <div className="flex items-center justify-between">
+              <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Active Products</span>
-                <Badge variant="secondary" className="text-lg px-3 py-1">
-                  {loading ? "..." : products.filter(p => !p.is_fake).length}
-                </Badge>
+                <Badge variant="secondary">{loading ? "..." : products.filter(p => !p.is_fake).length}</Badge>
               </div>
-              
               <div className="pt-4 border-t">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full"
                   onClick={() => {
-                    // Generate QR codes for all products that don't have them
                     products.forEach(product => {
-                      if (!qrCodes[product.id]) {
-                        generateQRForProduct(product);
-                      }
+                      if (!qrCodes[product.id]) generateQRForProduct(product);
                     });
-                    toast({
-                      title: "QR Codes Generated",
-                      description: "QR codes have been generated for all products.",
-                    });
+                    toast({ title: "QR Codes Generated", description: "All products now have QR codes." });
                   }}
                 >
                   <QrCode className="h-4 w-4 mr-2" />
@@ -211,82 +181,39 @@ const handleDownloadQR = (product: Product) => {
         <Card className="mt-8">
           <CardHeader>
             <CardTitle>Registered Products</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              View all products you've registered in the authenticity system
-            </p>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {loading ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Loading products...</p>
-                </div>
-              ) : products.length === 0 ? (
-                <div className="text-center py-8">
-                  <Package className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground">No products registered yet</p>
-                  <p className="text-sm text-muted-foreground mt-1">Register your first product above</p>
-                </div>
-              ) : (
-                products.map((product) => (
-                  <div 
-                    key={product.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className="bg-primary/10 p-2 rounded-lg">
-                        <Package className="h-4 w-4 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium">{product.name}</h3>
-                        <p className="text-sm text-muted-foreground">ID: {product.product_id}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{product.qr_hash}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      {qrCodes[product.id] && (
-                        <div className="flex flex-col items-center space-y-2">
-                          <img 
-                            src={qrCodes[product.id]} 
-                            alt="QR Code" 
-                            className="w-16 h-16 border rounded"
-                          />
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDownloadQR(product)}
-                          >
-                            <QrCode className="h-3 w-3 mr-1" />
-                            Download
-                          </Button>
-                        </div>
-                      )}
-                      {!qrCodes[product.id] && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => generateQRForProduct(product)}
-                        >
-                          <QrCode className="h-3 w-3 mr-1" />
-                          Generate QR
-                        </Button>
-                      )}
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Registered</p>
-                        <p className="text-sm">{new Date(product.created_at).toLocaleDateString()}</p>
-                      </div>
-                      <Badge 
-                        variant="outline" 
-                        className={product.is_fake ? "border-destructive/20 text-destructive" : "bg-success/10 text-success border-success/20"}
-                      >
-                        {product.is_fake ? "Flagged" : "Active"}
-                      </Badge>
-                    </div>
+            {loading ? (
+              <p className="text-center text-muted-foreground">Loading products...</p>
+            ) : (
+              products.map((product) => (
+                <div
+                  key={product.id}
+                  className="flex items-center justify-between p-4 border rounded-lg"
+                >
+                  <div>
+                    <h3 className="font-medium">{product.name}</h3>
+                    <p className="text-sm text-muted-foreground">ID: {product.product_id}</p>
+                    <p className="text-xs font-mono text-muted-foreground">{product.qr_hash}</p>
                   </div>
-                ))
-              )}
-            </div>
+                  <div className="flex flex-col items-center">
+                    {qrCodes[product.id] && (
+                      <>
+                        <img src={qrCodes[product.id]} alt="QR Code" className="w-16 h-16 mb-2 border rounded" />
+                        <Button size="sm" variant="outline" onClick={() => handleDownloadQR(product)}>
+                          <QrCode className="h-3 w-3 mr-1" /> Download
+                        </Button>
+                      </>
+                    )}
+                    {!qrCodes[product.id] && (
+                      <Button size="sm" variant="outline" onClick={() => generateQRForProduct(product)}>
+                        <QrCode className="h-3 w-3 mr-1" /> Generate QR
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
