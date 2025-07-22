@@ -26,7 +26,7 @@ export async function addProduct(productId: string, name: string): Promise<Produ
       if (blockchainSuccess) {
         console.log('✅ Product added to blockchain successfully');
       }
-    } catch (error) {
+    } catch {
       console.warn('⚠️ Blockchain failed, falling back to Supabase');
     }
   }
@@ -43,7 +43,7 @@ export async function addProduct(productId: string, name: string): Promise<Produ
       return null;
     }
 
-    console.log('✅ Product added to Supabase:', data);
+    console.log('✅ Product added to Supabase');
     return data;
 
   } catch (err) {
@@ -65,7 +65,6 @@ export async function fetchProducts(): Promise<Product[]> {
       return [];
     }
 
-    console.log('✅ Products fetched:', data);
     return data || [];
 
   } catch (err) {
@@ -82,7 +81,7 @@ export async function markAsFake(productId: string): Promise<Product | null> {
       if (blockchainSuccess) {
         console.log('✅ Product marked as fake on blockchain');
       }
-    } catch (error) {
+    } catch {
       console.warn('⚠️ Blockchain markAsFake failed, using Supabase fallback');
     }
   }
@@ -100,7 +99,7 @@ export async function markAsFake(productId: string): Promise<Product | null> {
       return null;
     }
 
-    console.log('✅ Product marked as fake in Supabase:', data);
+    console.log('✅ Product marked as fake in Supabase');
     return data;
 
   } catch (err) {
@@ -118,18 +117,16 @@ export async function verifyProduct(productId: string): Promise<{ name: string; 
         console.log('✅ Product verified via blockchain');
         return blockchainResult;
       }
-    } catch (error) {
+    } catch {
       console.warn('⚠️ Blockchain verify failed, falling back to Supabase');
     }
   }
 
   try {
-    const cleanId = productId.trim();
     const { data, error } = await supabase
       .from('products')
       .select('name, is_fake')
-      .ilike('product_id', `%${cleanId}%`)
-      .limit(1)
+      .eq('product_id', productId)
       .single();
 
     if (error) {
@@ -137,66 +134,11 @@ export async function verifyProduct(productId: string): Promise<{ name: string; 
       return null;
     }
 
-    console.log('✅ Product verified in Supabase:', data);
+    console.log('✅ Product verified in Supabase');
     return data;
 
   } catch (err) {
     console.error('❌ Unexpected error in verifyProduct:', err);
-    return null;
-  }
-}
-
-// Fallback partial match for QR decode
-export async function verifyProductByQR(qrHash: string): Promise<{ name: string; is_fake: boolean; product_id: string } | null> {
-  try {
-    const cleanHash = qrHash.trim().replace(/\\.png$/i, '');
-    console.log('🔎 Cleaned QR Hash for query:', cleanHash);
-
-    // Try full hash match first
-    const { data, error } = await supabase
-      .from('products')
-      .select('name, is_fake, product_id')
-      .ilike('qr_hash', `%${cleanHash}%`)
-      .limit(1)
-      .maybeSingle();
-
-    if (data) {
-      console.log('✅ Full hash match found:', data);
-      return data;
-    }
-
-    // Fallback: extract partial product ID from QR (e.g., product_9099_)
-    const match = cleanHash.match(/product_(\d+)_/);
-    if (!match) {
-      console.warn("⚠️ No numeric product ID found in QR hash:", cleanHash);
-      return null;
-    }
-
-    const partialProductId = match[1];
-    console.log('🔎 Fallback partial product ID:', partialProductId);
-
-    const { data: fallbackData, error: fallbackError } = await supabase
-      .from('products')
-      .select('name, is_fake, product_id')
-      .ilike('product_id', `%${partialProductId}%`)
-      .limit(1)
-      .maybeSingle();
-
-    if (fallbackError) {
-      console.error('❌ Supabase error in fallback partial match:', fallbackError);
-      return null;
-    }
-
-    if (!fallbackData) {
-      console.warn('⚠️ No product found for partial ID:', partialProductId);
-      return null;
-    }
-
-    console.log('✅ Fallback partial match found:', fallbackData);
-    return fallbackData;
-
-  } catch (err) {
-    console.error('❌ Unexpected error in verifyProductByQR (fallback):', err);
     return null;
   }
 }
@@ -236,7 +178,6 @@ export async function getAnalytics() {
       return acc;
     }, []) || [];
 
-    console.log('📊 Analytics Data:', { realCount, fakeCount, totalCount, recentProducts });
     return { realCount, fakeCount, totalCount, recentProducts };
 
   } catch (err) {
