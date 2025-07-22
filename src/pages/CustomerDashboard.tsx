@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { QrCode, ScanLine, ShieldCheck, ShieldX, Camera, CheckCircle, Search } from "lucide-react";
+import { QrCode, ScanLine, ShieldCheck, ShieldX, Camera, CheckCircle, Search, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { verifyProduct, verifyProductByQR } from "@/lib/productService";
 import { decodeQRFromFile } from "@/lib/qrService";
@@ -25,6 +25,7 @@ const CustomerDashboard = () => {
   const [verifying, setVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const [scanHistory, setScanHistory] = useState<VerificationResult[]>([]);
 
@@ -108,8 +109,7 @@ const CustomerDashboard = () => {
     setVerifying(false);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const processQRFile = async (file: File) => {
     if (!file) return;
 
     setUploadedFile(file);
@@ -161,6 +161,44 @@ const CustomerDashboard = () => {
     setVerifying(false);
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await processQRFile(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    const imageFile = files.find(file => file.type.startsWith('image/'));
+    
+    if (imageFile) {
+      await processQRFile(imageFile);
+      toast({
+        title: "QR Code Dropped",
+        description: "Processing your QR code image...",
+      });
+    } else {
+      toast({
+        title: "Invalid File",
+        description: "Please drop an image file containing a QR code.",
+        variant: "destructive",
+      });
+    }
+  };
   const simulateQRScan = () => {
     // Simulate scanning a QR code by setting a sample hash
     setQrHash("product_001_hash_abc123def456");
@@ -237,22 +275,37 @@ const CustomerDashboard = () => {
             <CardContent>
               <div className="space-y-4">
                 {/* Scanner Preview Area */}
-                <div className="relative bg-muted rounded-lg aspect-square flex items-center justify-center">
+                <div 
+                  className={`relative rounded-lg aspect-square flex items-center justify-center border-2 border-dashed transition-all duration-200 ${
+                    isDragOver 
+                      ? 'border-primary bg-primary/5 scale-105' 
+                      : 'border-muted-foreground/20 bg-muted hover:border-primary/50 hover:bg-muted/80'
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
                   {isScanning ? (
                     <div className="flex flex-col items-center space-y-3">
                       <ScanLine className="h-12 w-12 text-primary animate-pulse" />
                       <p className="text-sm text-muted-foreground">Scanning QR code...</p>
                     </div>
+                  ) : isDragOver ? (
+                    <div className="flex flex-col items-center space-y-3 text-primary">
+                      <Upload className="h-12 w-12 animate-bounce" />
+                      <p className="text-sm font-medium">Drop QR code image here</p>
+                    </div>
                   ) : (
                     <div className="flex flex-col items-center space-y-3 text-muted-foreground">
                       <Camera className="h-12 w-12" />
-                      <p className="text-sm text-center">Camera preview will appear here</p>
+                      <p className="text-sm text-center">Drag & drop QR code image here</p>
+                      <p className="text-xs text-center">or use the upload button below</p>
                     </div>
                   )}
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="qr-upload">Upload QR Code Image</Label>
+                  <Label htmlFor="qr-upload">Or Upload QR Code Image</Label>
                   <Input
                     id="qr-upload"
                     type="file"
