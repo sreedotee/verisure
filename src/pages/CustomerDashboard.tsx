@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { QrCode, ScanLine, ShieldCheck, ShieldX, Camera, CheckCircle, Search, Upload } from "lucide-react";
+import { QrCode, ScanLine, ShieldCheck, ShieldX, Camera, CheckCircle, Search, Upload, Link as LinkIcon, Cloud } from "lucide-react"; // Added Link and Cloud icons
 import { useToast } from "@/hooks/use-toast";
-import { verifyProduct, verifyProductByQR } from "@/lib/productService";
+import { verifyProduct, verifyProductByQR, blockchainStatus } from "@/lib/productService"; // Import blockchainStatus
 import { decodeQRFromFile } from "@/lib/qrService";
 
 interface VerificationResult {
@@ -15,6 +15,7 @@ interface VerificationResult {
   productName: string;
   status: 'Real' | 'Fake';
   verifiedAt: string;
+  source: 'Blockchain' | 'Supabase'; // Added source
 }
 
 const CustomerDashboard = () => {
@@ -26,6 +27,7 @@ const CustomerDashboard = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [scanHistory, setScanHistory] = useState<VerificationResult[]>([]);
+  const [currentBlockchainStatus, setCurrentBlockchainStatus] = useState<'blockchain' | 'supabase'>(blockchainStatus); // State for UI badge
 
   const handleVerifyById = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,14 +41,19 @@ const CustomerDashboard = () => {
     }
 
     setVerifying(true);
+    // Call the updated verifyProduct which handles blockchain and fallback
     const result = await verifyProduct(productId.trim());
+    
+    // Update the UI badge based on the status from productService
+    setCurrentBlockchainStatus(blockchainStatus);
 
     if (result) {
       const verificationData: VerificationResult = {
         productId: productId.trim(),
         productName: result.name,
         status: result.is_fake ? 'Fake' : 'Real',
-        verifiedAt: new Date().toLocaleString()
+        verifiedAt: new Date().toLocaleString(),
+        source: blockchainStatus === 'blockchain' ? 'Blockchain' : 'Supabase' // Set source
       };
 
       setVerificationResult(verificationData);
@@ -54,7 +61,7 @@ const CustomerDashboard = () => {
 
       toast({
         title: "Verification Complete",
-        description: `Product ${productId} is ${verificationData.status}`,
+        description: `Product ${result.name} is ${verificationData.status}. Verified via ${verificationData.source}.`,
       });
     } else {
       toast({
@@ -79,14 +86,19 @@ const CustomerDashboard = () => {
     }
 
     setVerifying(true);
+    // Call verifyProductByQR (which is currently Supabase-only)
     const result = await verifyProductByQR(qrHash.trim());
+    
+    // QR verification is always Supabase-backed for now
+    setCurrentBlockchainStatus('supabase'); 
 
     if (result) {
       const verificationData: VerificationResult = {
         productId: result.product_id,
         productName: result.name,
         status: result.is_fake ? 'Fake' : 'Real',
-        verifiedAt: new Date().toLocaleString()
+        verifiedAt: new Date().toLocaleString(),
+        source: 'Supabase' // Always Supabase for QR hash verification
       };
 
       setVerificationResult(verificationData);
@@ -94,7 +106,7 @@ const CustomerDashboard = () => {
 
       toast({
         title: "Verification Complete",
-        description: `Product ${result.name} is ${verificationData.status}`,
+        description: `Product ${result.name} is ${verificationData.status}. Verified via ${verificationData.source}.`,
       });
     } else {
       toast({
@@ -172,7 +184,10 @@ const CustomerDashboard = () => {
   };
 
   const simulateQRScan = () => {
-    setQrHash("product_001_1705523456789_abc123def");
+    // This now simulates scanning a QR code that contains a product ID
+    // which will then be used by handleVerifyByQR.
+    // Ensure this matches a product ID you might register (e.g., PRD-001)
+    setQrHash("PRD-001_1705523456789_abc123def"); // Example QR hash that contains a product ID
     toast({
       title: "QR Code Scanned",
       description: "Sample QR hash filled. Click verify to check authenticity.",
@@ -184,13 +199,32 @@ const CustomerDashboard = () => {
       <Navbar />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-4">
-            Product Verification
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Scan QR codes or enter Product IDs to verify authenticity
-          </p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold text-foreground mb-4">
+              Product Verification
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              Scan QR codes or enter Product IDs to verify authenticity
+            </p>
+          </div>
+          {/* Blockchain Status Badge */}
+          <Badge 
+            variant="outline" 
+            className={`px-3 py-1 text-sm font-medium ${
+              currentBlockchainStatus === 'blockchain' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-100 text-gray-800 border-gray-200'
+            }`}
+          >
+            {currentBlockchainStatus === 'blockchain' ? (
+              <>
+                <LinkIcon className="h-3 w-3 mr-1" /> Blockchain-backed (Amoy)
+              </>
+            ) : (
+              <>
+                <Cloud className="h-3 w-3 mr-1" /> Supabase fallback active
+              </>
+            )}
+          </Badge>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -241,7 +275,7 @@ const CustomerDashboard = () => {
                 className="w-full"
               >
                 <QrCode className="h-4 w-4 mr-2" />
-                QR Scan
+                Simulate QR Scan
               </Button>
 
               {/* File Upload Area */}
@@ -340,9 +374,19 @@ const CustomerDashboard = () => {
                   </Badge>
                 </div>
               </div>
-              <div className="mt-4">
-                <Label className="text-sm font-medium text-muted-foreground">Verified At</Label>
-                <p className="text-sm">{verificationResult.verifiedAt}</p>
+              <div className="mt-4 flex justify-between items-center">
+                <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Verified At</Label>
+                    <p className="text-sm">{verificationResult.verifiedAt}</p>
+                </div>
+                <Badge 
+                    variant="secondary" 
+                    className={`px-2 py-1 text-xs font-medium ${
+                        verificationResult.source === 'Blockchain' ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-700'
+                    }`}
+                >
+                    {verificationResult.source}
+                </Badge>
               </div>
             </CardContent>
           </Card>
@@ -374,6 +418,14 @@ const CustomerDashboard = () => {
                         {scan.status}
                       </Badge>
                       <p className="text-xs text-muted-foreground mt-1">{scan.verifiedAt}</p>
+                      <Badge 
+                        variant="secondary" 
+                        className={`px-2 py-1 text-xs font-medium mt-1 ${
+                            scan.source === 'Blockchain' ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-700'
+                        }`}
+                      >
+                        {scan.source}
+                      </Badge>
                     </div>
                   </div>
                 ))}
@@ -387,4 +439,3 @@ const CustomerDashboard = () => {
 };
 
 export default CustomerDashboard;
-
