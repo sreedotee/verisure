@@ -29,20 +29,26 @@ export function downloadQRCode(qrHash: string, dataURL: string) {
 
 /**
  * @dev Extracts the QR hash from an uploaded file's name.
- * It removes the file extension and any common browser-added suffixes like '(1)', '(2)', etc.
+ * It removes the file extension and any common browser/OS-added suffixes
+ * like '(1)', '(2)', '- Copy', etc., to ensure only the original hash remains.
  * @param {File} file The uploaded file object.
  * @returns {string} The cleaned QR hash.
  */
 export function decodeQRFromFile(file: File): string {
   let filename = file.name;
 
-  // 1. Remove file extension (e.g., .png, .jpg)
-  filename = filename.replace(/\.[^/.]+$/, "");
+  // 1. Remove the file extension (e.g., .png, .jpg, .jpeg)
+  filename = filename.replace(/\.(png|jpg|jpeg|gif|bmp|webp)$/i, "");
 
-  // 2. Remove common browser-added suffixes like '(1)', '(2)', etc.
-  // This regex looks for a space, followed by an opening parenthesis,
-  // one or more digits, a closing parenthesis, at the end of the string.
-  filename = filename.replace(/ \(\d+\)$/, "");
+  // 2. Remove common browser/OS-added suffixes:
+  //    - ' (X)' where X is a number (e.g., ' (1)', ' (2)')
+  //    - '- Copy' (e.g., 'filename - Copy')
+  //    - '_Copy' (less common but possible)
+  //    - Any trailing whitespace
+  filename = filename.replace(/ \(\d+\)$/, ""); // e.g., "filename (1)" -> "filename"
+  filename = filename.replace(/ - Copy$/, "");  // e.g., "filename - Copy" -> "filename"
+  filename = filename.replace(/_Copy$/, "");   // e.g., "filename_Copy" -> "filename"
+  filename = filename.trim(); // Remove any leading/trailing whitespace that might remain
 
   return filename;
 }
