@@ -241,7 +241,7 @@ const CustomerDashboard = () => {
                 className="w-full"
               >
                 <QrCode className="h-4 w-4 mr-2" />
-                Simulate QR Scan (Fill Sample Hash)
+                QR Scan
               </Button>
 
               {/* File Upload Area */}
@@ -281,7 +281,7 @@ const CustomerDashboard = () => {
               {/* Manual QR Hash Input */}
               <form onSubmit={handleVerifyByQR} className="space-y-4">
                 <div>
-                  <Label htmlFor="qrHash">QR Hash (for testing)</Label>
+                  <Label htmlFor="qrHash">QR Hash</Label>
                   <Input
                     id="qrHash"
                     value={qrHash}

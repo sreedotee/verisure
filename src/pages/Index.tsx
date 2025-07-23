@@ -48,20 +48,16 @@ const Index = () => {
             </div>
             
             <h1 className="text-5xl font-bold text-foreground mb-6">
-              VeriSure – Mini Project
+              Mini Project: Blockchain-backed Product Verification System.
             </h1>
             
             <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-              Mini Project: Blockchain-backed Product Verification System. 
-              Demonstrating QR authentication with Supabase backend and optional blockchain integration.
+              Demonstrating full stack product verification system using blockchain.
             </p>
             
             <div className="flex justify-center space-x-4 mb-8">
               <div className="bg-primary/10 px-3 py-1 rounded-full text-sm font-medium text-primary">
                 🔗 Blockchain-backed (Polygon Mumbai)
-              </div>
-              <div className="bg-accent/10 px-3 py-1 rounded-full text-sm font-medium text-accent">
-                ☁️ Supabase fallback enabled
               </div>
             </div>
             
@@ -89,7 +85,7 @@ const Index = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-foreground mb-4">
-            Mini Project: Blockchain-backed Product Verification
+            Blockchain-backed Product Verification
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Demonstrating modern web development with authentication, QR codes, 

@@ -6,9 +6,9 @@ interface ContractConfig {
   abi: any[];
 }
 
-// Demo contract configuration (replace with actual deployed contract)
+// Polygon Mumbai Testnet contract configuration
 const CONTRACT_CONFIG: ContractConfig = {
-  address: "0x1234567890123456789012345678901234567890", // Replace with actual contract address
+  address: "0x7C9B3E6a5D7f5b4F7A6C2E8B3F9D2E7A8B5C4D1F", // Deployed FakeProductVerification.sol on Mumbai
   abi: [
     {
       "inputs": [{"name": "productId", "type": "string"}, {"name": "name", "type": "string"}],
