@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Factory, Package, Plus, QrCode } from "lucide-react";
+import { Factory, Package, Plus, QrCode, Link as LinkIcon, Cloud } from "lucide-react"; // Added Link and Cloud icons
 import { useToast } from "@/hooks/use-toast";
-import { fetchProducts, addProduct, type Product } from "@/lib/productService";
+import { fetchProducts, addProduct, type Product, blockchainStatus } from "@/lib/productService"; // Import blockchainStatus
 import { generateQRCode, downloadQRCode } from "@/lib/qrService";
 
 const ManufacturerDashboard = () => {
@@ -17,6 +17,7 @@ const ManufacturerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
+  const [currentBlockchainStatus, setCurrentBlockchainStatus] = useState<'blockchain' | 'supabase'>(blockchainStatus); // State for UI badge
 
   useEffect(() => {
     loadProducts();
@@ -71,7 +72,12 @@ const ManufacturerDashboard = () => {
     }
 
     setSubmitting(true);
+    // Call the updated addProduct which handles blockchain and fallback
     const result = await addProduct(productId.trim(), productName.trim());
+    
+    // Update the UI badge based on the status from productService
+    setCurrentBlockchainStatus(blockchainStatus);
+
     if (result?.qr_hash) {
       setProducts(prev => [result, ...prev]);
       generateQRForProduct(result);
@@ -79,13 +85,13 @@ const ManufacturerDashboard = () => {
       setProductName("");
       toast({
         title: "Product Registered",
-        description: `${productName} has been successfully registered with ID: ${productId}`,
+        description: `${productName} has been successfully registered with ID: ${productId}. ${blockchainStatus === 'blockchain' ? 'Blockchain-backed!' : 'Supabase fallback active.'}`,
       });
     } else {
       console.error("❌ Failed to register product or missing qr_hash:", result);
       toast({
         title: "Error",
-        description: "Failed to register product. Product ID might already exist.",
+        description: "Failed to register product. Product ID might already exist or blockchain issue.",
         variant: "destructive",
       });
     }
@@ -96,9 +102,28 @@ const ManufacturerDashboard = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Manufacturer Dashboard</h1>
-          <p className="text-muted-foreground">Register new products and manage your product catalog</p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Manufacturer Dashboard</h1>
+            <p className="text-muted-foreground">Register new products and manage your product catalog</p>
+          </div>
+          {/* Blockchain Status Badge */}
+          <Badge 
+            variant="outline" 
+            className={`px-3 py-1 text-sm font-medium ${
+              currentBlockchainStatus === 'blockchain' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-100 text-gray-800 border-gray-200'
+            }`}
+          >
+            {currentBlockchainStatus === 'blockchain' ? (
+              <>
+                <LinkIcon className="h-3 w-3 mr-1" /> Blockchain-backed (Amoy)
+              </>
+            ) : (
+              <>
+                <Cloud className="h-3 w-3 mr-1" /> Supabase fallback active
+              </>
+            )}
+          </Badge>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -200,7 +225,7 @@ const ManufacturerDashboard = () => {
                   <div>
                     <h3 className="font-medium">{product.name}</h3>
                     <p className="text-sm text-muted-foreground">ID: {product.product_id}</p>
-                    <p className="text-xs font-mono text-muted-foreground">{product.qr_hash}</p>
+                    <p className="text-xs font-mono text-muted-foreground">QR Hash: {product.qr_hash}</p> {/* Display QR Hash */}
                   </div>
                   <div className="flex flex-col items-center">
                     {qrCodes[product.id] && (
@@ -228,5 +253,3 @@ const ManufacturerDashboard = () => {
 };
 
 export default ManufacturerDashboard;
-
-
