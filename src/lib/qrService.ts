@@ -26,3 +26,9 @@ export function downloadQRCode(qrHash: string, dataURL: string) {
   link.click();
   document.body.removeChild(link);
 }
+
+// Extract QR hash from uploaded file name (without extension)
+export function decodeQRFromFile(file: File): string {
+  // Remove file extension and return the filename as QR hash
+  return file.name.replace(/\.[^/.]+$/, "");
+}

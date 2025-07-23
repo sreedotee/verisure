@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { QrCode, ScanLine, ShieldCheck, ShieldX, Camera, CheckCircle, Search, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { verifyProduct } from "@/lib/productService";
+import { verifyProduct, verifyProductByQR } from "@/lib/productService";
+import { decodeQRFromFile } from "@/lib/qrService";
 
 interface VerificationResult {
   productId: string;
@@ -20,7 +21,6 @@ const CustomerDashboard = () => {
   const { toast } = useToast();
   const [productId, setProductId] = useState("");
   const [qrHash, setQrHash] = useState("");
-  const [isScanning, setIsScanning] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -79,13 +79,11 @@ const CustomerDashboard = () => {
     }
 
     setVerifying(true);
-    // For now, we'll use the same verification function but by product ID
-    // In a real implementation, you'd have a separate function for QR verification
-    const result = await verifyProduct(qrHash.trim());
+    const result = await verifyProductByQR(qrHash.trim());
 
     if (result) {
       const verificationData: VerificationResult = {
-        productId: qrHash.trim(),
+        productId: result.product_id,
         productName: result.name,
         status: result.is_fake ? 'Fake' : 'Real',
         verifiedAt: new Date().toLocaleString()
@@ -115,16 +113,16 @@ const CustomerDashboard = () => {
     setUploadedFile(file);
 
     try {
-      // 🩹 Extract QR hash from file name (drop extension)
-      const fileName = file.name.replace(/\.[^/.]+$/, "");
-      console.log('📦 Extracted QR Hash from file name:', fileName);
+      // Extract QR hash from file name (without extension)
+      const extractedHash = decodeQRFromFile(file);
+      console.log('📦 Extracted QR Hash from file name:', extractedHash);
 
-      // Fill QR Hash (for testing) input
-      setQrHash(fileName);
+      // Fill QR Hash input field
+      setQrHash(extractedHash);
 
       toast({
-        title: "QR Hash Ready",
-        description: "Extracted from file name and filled in test field.",
+        title: "QR Hash Extracted",
+        description: "File name extracted and filled in QR Hash field. Click verify to check authenticity.",
       });
     } catch (error) {
       console.error('❌ Error processing QR file:', error);
@@ -174,19 +172,11 @@ const CustomerDashboard = () => {
   };
 
   const simulateQRScan = () => {
-    setQrHash("product_001_hash_abc123def456");
+    setQrHash("product_001_1705523456789_abc123def");
     toast({
       title: "QR Code Scanned",
-      description: "QR hash filled. Click verify to check authenticity.",
+      description: "Sample QR hash filled. Click verify to check authenticity.",
     });
-  };
-
-  const handleScanSimulation = () => {
-    setIsScanning(true);
-    setTimeout(() => {
-      simulateQRScan();
-      setIsScanning(false);
-    }, 2000);
   };
 
   return (
@@ -244,18 +234,15 @@ const CustomerDashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Camera Scan Simulation */}
-              <div className="space-y-4">
-                <Button 
-                  onClick={handleScanSimulation}
-                  disabled={isScanning}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <Camera className="h-4 w-4 mr-2" />
-                  {isScanning ? "Scanning..." : "Simulate Camera Scan"}
-                </Button>
-              </div>
+              {/* Simulate QR Scan Button */}
+              <Button 
+                onClick={simulateQRScan}
+                variant="outline"
+                className="w-full"
+              >
+                <QrCode className="h-4 w-4 mr-2" />
+                Simulate QR Scan (Fill Sample Hash)
+              </Button>
 
               {/* File Upload Area */}
               <div

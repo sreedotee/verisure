@@ -143,6 +143,48 @@ export async function verifyProduct(productId: string): Promise<{ name: string; 
   }
 }
 
+// Verify product by QR hash
+export async function verifyProductByQR(qrHash: string): Promise<{ name: string; is_fake: boolean; product_id: string } | null> {
+  try {
+    // First try exact qr_hash match
+    let { data, error } = await supabase
+      .from('products')
+      .select('name, is_fake, product_id')
+      .eq('qr_hash', qrHash)
+      .single();
+
+    if (!error && data) {
+      console.log('✅ Product verified by exact QR hash match');
+      return data;
+    }
+
+    // If no exact match, try to extract numeric product ID and search by product_id
+    const numericMatch = qrHash.match(/(\d+)/);
+    if (numericMatch) {
+      const numericId = numericMatch[1];
+      console.log(`🔍 Trying fallback search with numeric ID: ${numericId}`);
+      
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('products')
+        .select('name, is_fake, product_id')
+        .eq('product_id', numericId)
+        .single();
+
+      if (!fallbackError && fallbackData) {
+        console.log('✅ Product verified by numeric ID fallback');
+        return fallbackData;
+      }
+    }
+
+    console.log('❌ No product found for QR hash:', qrHash);
+    return null;
+
+  } catch (err) {
+    console.error('❌ Unexpected error in verifyProductByQR:', err);
+    return null;
+  }
+}
+
 // Get analytics data
 export async function getAnalytics() {
   try {
