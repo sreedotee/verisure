@@ -57,7 +57,7 @@ const Index = () => {
             
             <div className="flex justify-center space-x-4 mb-8">
               <div className="bg-primary/10 px-3 py-1 rounded-full text-sm font-medium text-primary">
-                🔗 Blockchain-backed (Polygon Mumbai)
+                🔗 Blockchain-backed (Polygon Amoy)
               </div>
             </div>
             
