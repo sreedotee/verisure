@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { BarChart3, PieChart, TrendingUp, ShieldCheck, ShieldX, Eye, Package } from "lucide-react";
 import { getAnalytics } from "@/lib/productService";
+// No Navbar import needed if it's truly public and doesn't rely on user context
+// import Navbar from "@/components/Navbar"; // Removed as per "No auth required (public)"
 
 const Analytics = () => {
   const [analytics, setAnalytics] = useState({
@@ -30,6 +32,8 @@ const Analytics = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Removed Navbar to make it truly public and independent of auth context */}
+      {/* <Navbar /> */} 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">Analytics Dashboard</h1>
@@ -79,7 +83,7 @@ const Analytics = () => {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+              <CardTitle className="text-sm font-medium">Trust Score</CardTitle> {/* Changed from Success Rate to Trust Score */}
               <TrendingUp className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
@@ -87,7 +91,7 @@ const Analytics = () => {
                 {loading ? "..." : `${authenticity_rate.toFixed(1)}%`}
               </div>
               <p className="text-xs text-muted-foreground">
-                Products verified as real
+                Platform reliability
               </p>
             </CardContent>
           </Card>
