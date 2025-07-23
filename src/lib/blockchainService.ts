@@ -1,58 +1,190 @@
+// lib/blockchainService.ts
+// Blockchain service for optional Web3 integration with Polygon Amoy testnet
+// This is a demo implementation - in production you'd use actual contract ABIs
 
+import { ethers } from "ethers"; // Ensure ethers is imported
 
 interface ContractConfig {
   address: string;
   abi: any[];
 }
 
-// IMPORTANT: Replace with your deployed contract address after deploying FakeProductVerification.sol on Amoy.
-const CONTRACT_ADDRESS = "YOUR_DEPLOYED_CONTRACT_ADDRESS";
+// IMPORTANT: Replaced with your deployed contract address after deploying FakeProductVerification.sol on Amoy.
+const CONTRACT_ADDRESS = "0x66111Ea7f29af5eD9530276f24F0057C68112886";
 
-// IMPORTANT: Paste the FULL ABI from Remix after deploying your contract.
-// This is a placeholder ABI. You MUST replace it with your actual contract's ABI.
-// Ensure verifyProduct's output matches (string, bool)
+// IMPORTANT: Pasted the FULL ABI from Remix after deploying your contract.
 const CONTRACT_ABI = [
-  {
-    "inputs": [{"name": "_productId", "type": "string"}, {"name": "_name", "type": "string"}],
-    "name": "addProduct",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [{"name": "_productId", "type": "string"}],
-    "name": "verifyProduct", // Renamed from checkProduct to match common contract naming
-    "outputs": [{"name": "name", "type": "string"}, {"name": "isFake", "type": "bool"}],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [{"name": "_productId", "type": "string"}],
-    "name": "markAsFake",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {"indexed": false, "internalType": "string", "name": "productId", "type": "string"},
-      {"indexed": false, "internalType": "string", "name": "name", "type": "string"},
-      {"indexed": true, "internalType": "address", "name": "manufacturer", "type": "address"}
-    ],
-    "name": "ProductAdded",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {"indexed": false, "internalType": "string", "name": "productId", "type": "string"},
-      {"indexed": false, "internalType": "bool", "name": "isFake", "type": "bool"},
-      {"indexed": true, "internalType": "address", "name": "admin", "type": "address"}
-    ],
-    "name": "ProductStatusUpdated",
-    "type": "event"
-  }
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_productId",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_name",
+				"type": "string"
+			}
+		],
+		"name": "addProduct",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_productId",
+				"type": "string"
+			}
+		],
+		"name": "markAsFake",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "productId",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "name",
+				"type": "string"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "manufacturer",
+				"type": "address"
+			}
+		],
+		"name": "ProductAdded",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "productId",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "bool",
+				"name": "isFake",
+				"type": "bool"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "admin",
+				"type": "address"
+			}
+		],
+		"name": "ProductStatusUpdated",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"name": "productExists",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"name": "products",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "name",
+				"type": "string"
+			},
+			{
+				"internalType": "bool",
+				"name": "isFake",
+				"type": "bool"
+			},
+			{
+				"internalType": "address",
+				"name": "manufacturer",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_productId",
+				"type": "string"
+			}
+		],
+		"name": "verifyProduct",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "name",
+				"type": "string"
+			},
+			{
+				"internalType": "bool",
+				"name": "isFake",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
 ];
 
 
