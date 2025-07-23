@@ -26,3 +26,23 @@ export function downloadQRCode(qrHash: string, dataURL: string) {
   link.click();
   document.body.removeChild(link);
 }
+
+/**
+ * @dev Extracts the QR hash from an uploaded file's name.
+ * It removes the file extension and any common browser-added suffixes like '(1)', '(2)', etc.
+ * @param {File} file The uploaded file object.
+ * @returns {string} The cleaned QR hash.
+ */
+export function decodeQRFromFile(file: File): string {
+  let filename = file.name;
+
+  // 1. Remove file extension (e.g., .png, .jpg)
+  filename = filename.replace(/\.[^/.]+$/, "");
+
+  // 2. Remove common browser-added suffixes like '(1)', '(2)', etc.
+  // This regex looks for a space, followed by an opening parenthesis,
+  // one or more digits, a closing parenthesis, at the end of the string.
+  filename = filename.replace(/ \(\d+\)$/, "");
+
+  return filename;
+}
