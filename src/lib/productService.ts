@@ -34,7 +34,7 @@ export async function addProduct(productId: string, name: string): Promise<Produ
   try {
     const { data, error } = await supabase
       .from('products')
-      .insert([{ product_id, name, qr_hash: qrHash, is_fake: false }])
+      .insert([{ product_id: productId, name, qr_hash: qrHash, is_fake: false }])
       .select()
       .single();
 
@@ -113,7 +113,7 @@ export async function verifyProduct(productId: string): Promise<{ name: string; 
   if (await isWeb3Available()) {
     try {
       const blockchainResult = await checkProductOnBlockchain(productId);
-      if (blockchainResult !== null) {
+      if (blockchainResult && typeof blockchainResult === 'object') {
         console.log('✅ Product verified via blockchain');
         return blockchainResult;
       }

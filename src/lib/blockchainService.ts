@@ -42,10 +42,10 @@ export async function connectWallet(): Promise<string | null> {
   }
 
   try {
-    const { ethers } = await import('ethers');
-    const provider = new ethers.providers.Web3Provider((window as any).ethereum);
+    const { ethers, BrowserProvider } = await import('ethers');
+    const provider = new BrowserProvider((window as any).ethereum);
     await provider.send("eth_requestAccounts", []);
-    const signer = provider.getSigner();
+    const signer = await provider.getSigner();
     return await signer.getAddress();
   } catch (error) {
     console.error('Failed to connect wallet:', error);
@@ -58,10 +58,10 @@ export async function getContract() {
     throw new Error('Web3 not available');
   }
 
-  const { ethers } = await import('ethers');
-  const provider = new ethers.providers.Web3Provider((window as any).ethereum);
-  const signer = provider.getSigner();
-  return new ethers.Contract(CONTRACT_CONFIG.address, CONTRACT_CONFIG.abi, signer);
+  const { ethers, BrowserProvider, Contract } = await import('ethers');
+  const provider = new BrowserProvider((window as any).ethereum);
+  const signer = await provider.getSigner();
+  return new Contract(CONTRACT_CONFIG.address, CONTRACT_CONFIG.abi, signer);
 }
 
 export async function addProductToBlockchain(productId: string, name: string): Promise<boolean> {
