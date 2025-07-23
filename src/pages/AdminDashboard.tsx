@@ -4,14 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ShieldCheck, ShieldX, Plus, AlertTriangle } from "lucide-react";
+import { ShieldCheck, ShieldX, Plus, AlertTriangle, Link as LinkIcon, Cloud } from "lucide-react"; // Added Link and Cloud icons
 import { useToast } from "@/hooks/use-toast";
-import { fetchProducts, markAsFake, type Product } from "@/lib/productService";
+import { fetchProducts, markAsFake, type Product, blockchainStatus } from "@/lib/productService"; // Import blockchainStatus
 
 const AdminDashboard = () => {
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentBlockchainStatus, setCurrentBlockchainStatus] = useState<'blockchain' | 'supabase'>(blockchainStatus); // State for UI badge
 
   useEffect(() => {
     loadProducts();
@@ -25,7 +26,12 @@ const AdminDashboard = () => {
   };
 
   const handleMarkAsFake = async (productId: string) => {
+    // Call the updated markAsFake which handles blockchain and fallback
     const result = await markAsFake(productId);
+    
+    // Update the UI badge based on the status from productService
+    setCurrentBlockchainStatus(blockchainStatus);
+
     if (result) {
       setProducts(prev => 
         prev.map(p => 
@@ -34,13 +40,13 @@ const AdminDashboard = () => {
       );
       toast({
         title: "Product Status Updated",
-        description: `Product ${productId} has been marked as fake.`,
+        description: `Product ${productId} has been marked as fake. ${blockchainStatus === 'blockchain' ? 'Blockchain-backed!' : 'Supabase fallback active.'}`,
         variant: "destructive",
       });
     } else {
       toast({
         title: "Error",
-        description: "Failed to update product status.",
+        description: "Failed to update product status. Product might not exist or blockchain issue.",
         variant: "destructive",
       });
     }
@@ -54,9 +60,28 @@ const AdminDashboard = () => {
       <Navbar />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Manage product authenticity and monitor system health</p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h1>
+            <p className="text-muted-foreground">Manage product authenticity and monitor system health</p>
+          </div>
+          {/* Blockchain Status Badge */}
+          <Badge 
+            variant="outline" 
+            className={`px-3 py-1 text-sm font-medium ${
+              currentBlockchainStatus === 'blockchain' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-100 text-gray-800 border-gray-200'
+            }`}
+          >
+            {currentBlockchainStatus === 'blockchain' ? (
+              <>
+                <LinkIcon className="h-3 w-3 mr-1" /> Blockchain-backed (Amoy)
+              </>
+            ) : (
+              <>
+                <Cloud className="h-3 w-3 mr-1" /> Supabase fallback active
+              </>
+            )}
+          </Badge>
         </div>
 
         {/* Stats Cards */}
@@ -102,7 +127,8 @@ const AdminDashboard = () => {
                   Manage product authenticity status and QR code hashes
                 </p>
               </div>
-              <Button className="bg-primary">
+              {/* Note: Add New Product button here would typically link to Manufacturer Dashboard or a modal */}
+              <Button className="bg-primary" onClick={() => toast({ title: "Info", description: "Products are registered via the Manufacturer Dashboard." })}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add New Product
               </Button>
@@ -159,7 +185,7 @@ const AdminDashboard = () => {
                           variant="destructive"
                           size="sm"
                           onClick={() => handleMarkAsFake(product.product_id)}
-                          disabled={product.is_fake}
+                          disabled={product.is_fake} // Disable if already fake
                         >
                           <ShieldX className="h-3 w-3 mr-1" />
                           Mark as Fake
